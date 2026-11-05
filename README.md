@@ -64,8 +64,8 @@ poids sont des dépendances tierces et ne sont pas inclus dans le dépôt.
 
 ## Choisir un parcours d’installation
 
-- **Local** — Streamlit, FastAPI, Qdrant et Ollama sur votre machine.
-- **Docker Compose** — API et Qdrant en conteneurs, avec Ollama sur l’hôte.
+- **Local**  Streamlit, FastAPI, Qdrant et Ollama sur votre machine.
+- **Docker Compose**  API et Qdrant en conteneurs, avec Ollama sur l’hôte.
 
 Les instructions pas à pas incluent les commandes PowerShell ainsi que des
 parcours Linux/macOS. La configuration multi-plateforme n’est pas encore
