@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="RSLM est un assistant documentaire local basé sur le RAG, avec citations de sources, FastAPI, Streamlit, Qdrant et Ollama.">
+    <meta name="theme-color" content="#101a2d">
+    <title>RSLM — assistant documentaire local</title>
+    <link rel="stylesheet" href="../assets/site.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header-row">
+        <a class="wordmark" href="./"><span class="wordmark-icon">R</span> RSLM</a>
+        <nav class="language-switch" aria-label="Choisir la langue">
+          <span class="current" aria-current="page">FR</span><span aria-hidden="true">/</span><a href="../en/">EN</a>
+        </nav>
+      </div>
+    </header>
+    <main>
+      <section class="wrap hero">
+        <p class="eyebrow">Assistant documentaire · Projet open source</p>
+        <h1>La connaissance de vos documents, enfin accessible.</h1>
+        <p class="lead">RSLM recherche dans vos documents autorisés et produit des réponses accompagnées de sources consultables. Le projet rassemble une chaîne RAG complète, exécutable localement.</p>
+        <div class="hero-actions">
+          <a class="button button-primary repository-link" href="#" rel="noopener">Voir le code sur GitHub <span aria-hidden="true">↗</span></a>
+          <a class="button button-secondary readme-link" data-language="fr" href="#">Lire le guide d’installation</a>
+        </div>
+        <p class="small-note">Python · FastAPI · Streamlit · Qdrant · Sentence Transformers · Ollama</p>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section-heading">
+            <p class="eyebrow">Le projet</p>
+            <h2>Un assistant documentaire que l’on peut inspecter.</h2>
+            <p>Les réponses documentaires s’appuient sur une recherche vectorielle, un reranking et un contexte sélectionné. Les sources sont présentées avec leurs documents et pages.</p>
+          </div>
+          <div class="grid">
+            <article class="card"><span class="card-mark">01</span><h3>Recherche dans vos PDF</h3><p>Importez un corpus autorisé, indexez ses passages et retrouvez des informations avec des références documentaires.</p></article>
+            <article class="card"><span class="card-mark">02</span><h3>Pipeline RAG traçable</h3><p>Suivez les candidats retrouvés, les scores de classement, le contexte transmis au modèle et les sources associées.</p></article>
+            <article class="card"><span class="card-mark">03</span><h3>Administration et sauvegardes</h3><p>Gérez le corpus depuis l’interface et disposez d’outils locaux de sauvegarde et de restauration.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section-heading"><p class="eyebrow">Architecture</p><h2>Des composants spécialisés, reliés simplement.</h2></div>
+          <pre class="architecture">Navigateur → Streamlit → FastAPI → Ollama
+                         └→ Qdrant
+PDF → extraction → passages → embeddings → index vectoriel
+                     └→ reranking → contexte → réponse sourcée</pre>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section-heading"><p class="eyebrow">Démarrer</p><h2>Exécuter le projet sur votre machine.</h2><p>RSLM est conçu comme une application locale. Le premier lancement télécharge les modèles nécessaires.</p></div>
+          <div class="grid grid-two">
+            <article class="card">
+              <span class="card-mark">LOCAL</span>
+              <h3>Installation locale</h3>
+              <p>Exécutez l’interface et l’API dans votre environnement Python, avec Ollama et Qdrant local.</p>
+              <a class="documentation-link" data-document="docs/guide-reproduction.md" href="#">Suivre le guide local (Windows, Linux et macOS) →</a>
+            </article>
+            <article class="card">
+              <span class="card-mark">DOCKER</span>
+              <h3>Parcours Docker Compose</h3>
+              <p>Conteneurisez l’API et Qdrant ; Ollama reste installé sur la machine hôte.</p>
+              <a class="documentation-link" data-document="docs/guide-reproduction.md" href="#">Voir les étapes Docker Compose →</a>
+            </article>
+          </div>
+          <p class="hero-actions"><a class="button button-primary readme-link" data-language="fr" href="#">Consulter le README complet <span aria-hidden="true">→</span></a></p>
+          <div class="hero-actions">
+            <a class="button button-secondary documentation-link" data-document="docs/guide-reproduction.md" href="#">Guide de reproduction pas à pas</a>
+            <a class="button button-secondary documentation-link" data-document="docs/project-stages.md" href="#">Étapes de réalisation</a>
+            <a class="button button-secondary documentation-link" data-document="instructions.md" href="#">Contribuer au projet</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section-heading"><p class="eyebrow">Documentation</p><h2>Choisir sa langue et son niveau de détail.</h2><p>Les guides complets restent en français et en anglais ; des présentations courtes du projet sont proposées dans 21 autres langues.</p></div>
+          <details class="language-readmes">
+            <summary>Afficher les 23 versions du README</summary>
+            <ul class="language-readme-list">
+              <li><a class="documentation-link" data-document="README.en.md" href="#">English</a></li>
+              <li><a class="documentation-link" data-document="README.md" href="#">Français</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_zh.md" href="#">简体中文</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_zh-TW.md" href="#">繁體中文</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_ja.md" href="#">日本語</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_ko.md" href="#">한국어</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_tr.md" href="#">Türkçe</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_ru.md" href="#">Русский</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_vi.md" href="#">Tiếng Việt</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_th.md" href="#">ไทย</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_de.md" href="#">Deutsch</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_es.md" href="#">Español</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_uk.md" href="#">Українська</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_pl.md" href="#">Polski</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_pt-BR.md" href="#">Português (Brasil)</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_ar.md" href="#">العربية</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_fa.md" href="#">فارسی</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_id.md" href="#">Bahasa Indonesia</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_it.md" href="#">Italiano</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_el.md" href="#">Ελληνικά</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_ml.md" href="#">മലയാളം</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_ur-Latn.md" href="#">Roman Urdu</a></li>
+              <li><a class="documentation-link" data-document="docs/readme/README_ro.md" href="#">Română</a></li>
+            </ul>
+          </details>
+          <p class="small-note">Les traductions courtes n’ont pas été revues indépendamment par des locuteurs natifs. Pour les commandes exactes, consulter les guides FR/EN.</p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="section-heading"><p class="eyebrow">Questions courantes</p><h2>Avant de lancer RSLM.</h2></div>
+          <div class="faq-list">
+            <details><summary>Le site héberge-t-il le chatbot ?</summary><p>Non. GitHub Pages sert uniquement le site statique ; l’API, Ollama et les documents s’exécutent localement.</p></details>
+            <details><summary>Les PDF ou les modèles sont-ils fournis ?</summary><p>Non. Ajoutez uniquement un corpus que vous êtes autorisé à traiter. Les documents, index et modèles téléchargés ne sont pas inclus dans le dépôt.</p></details>
+            <details><summary>Quelle option d’installation choisir ?</summary><p>Le parcours local lance l’API et l’interface depuis Python. Docker Compose conteneurise l’API et Qdrant, mais Ollama reste sur l’hôte. Consultez le guide avant de choisir.</p></details>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="wrap">
+          <div class="notice">
+            <strong>Démo locale, pas un service public hébergé.</strong>
+            <p>Le site présente le code ; il n’héberge ni chatbot, ni corpus. L’API ne doit pas être exposée à un réseau non fiable sans authentification, HTTPS, contrôle d’accès et limites de ressources. Les PDF et données d’indexation ne sont pas inclus.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap footer-row">
+        <span>RSLM · Projet personnel open source</span>
+        <nav class="footer-links" aria-label="Liens du projet">
+          <a class="repository-link" href="#" rel="noopener">Code source</a>
+          <a class="documentation-link" data-document="securite.instructions.md" href="#">Sécurité</a>
+          <a class="license-link" href="#">Licence MIT</a>
+          <a href="../en/">English</a>
+        </nav>
+      </div>
+    </footer>
+    <script defer src="../repository.js"></script>
+  </body>
+</html>

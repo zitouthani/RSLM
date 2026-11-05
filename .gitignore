@@ -1,0 +1,37 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+
+# Python environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Local models and document corpus
+models/
+documents/*
+!documents/.gitkeep
+/assets/
+data/*
+!data/.gitkeep
+logs/*
+!logs/.gitkeep
+*.pdf
+
+# Runtime state, traces and backups
+*.sqlite3
+*.sqlite3-*
+*.jsonl
+**/backups/
+
+# Local tooling and archived prototypes
+.vscode/
+.agents/
+.claude/
+trash/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
