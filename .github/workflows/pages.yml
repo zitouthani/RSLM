@@ -46,7 +46,7 @@ jobs:
               "window.RSLM_REPOSITORY_URL = " + json.dumps(url) + ";\n"
               "window.RSLM_BRANCH = " + json.dumps(branch) + ";\n"
           )
-          Path("site/repository.js").write_text(payload, encoding="utf-8")
+          Path("site/repository-config.js").write_text(payload, encoding="utf-8")
           PY
 
       - name: Upload website artifact
