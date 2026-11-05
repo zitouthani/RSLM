@@ -1,5 +1,6 @@
 (function () {
-  const repositoryUrl = window.RSLM_REPOSITORY_URL;
+  const repositoryUrl =
+    window.RSLM_REPOSITORY_URL || "https://github.com/zitouthani/RSLM";
   const branch = window.RSLM_BRANCH || "main";
 
   document.querySelectorAll(".repository-link").forEach((link) => {
