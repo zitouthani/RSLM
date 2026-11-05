@@ -1,4 +1,4 @@
-# RSLM — Reproducible Small Language Model
+# RSLM - Reproducible Small Language Model
 
 Assistant documentaire local basé sur la génération augmentée par récupération
 (RAG). RSLM assemble une API FastAPI, une interface Streamlit, Qdrant, des
