@@ -11,10 +11,9 @@ language-model weights.
 The translated overviews are concise; full guides and reference commands are
 maintained in French and English.
 
-**Project website:** a bilingual French/English GitHub Pages site is provided
-in [`site/`](site/). After enabling the GitHub Pages workflow, it will be
-available at `https://<owner>.github.io/<repository>/`. In GitHub, select
-**Settings → Pages → Build and deployment → GitHub Actions**.
+**Project website:** [visit the bilingual French/English site](https://zitouthani.github.io/RSLM/).
+Its [source code](site/) and GitHub Pages deployment workflow are included in
+this repository.
 
 See [`instructions.md`](instructions.md) and
 [`securite.instructions.md`](securite.instructions.md) for contribution and

@@ -11,10 +11,9 @@ reproductible ; il n’entraîne pas ses propres poids de modèle de langage.
 Les présentations traduites sont synthétiques ; les guides détaillés et les
 commandes de référence sont maintenus en français et en anglais.
 
-**Site du projet :** un site bilingue français/anglais est fourni dans
-[`site/`](site/). Après activation du workflow GitHub Pages, il sera accessible
-à l’adresse `https://<propriétaire>.github.io/<dépôt>/`. Dans GitHub, choisir
-**Settings → Pages → Build and deployment → GitHub Actions**.
+**Site du projet :** [visiter le site bilingue français/anglais](https://zitouthani.github.io/RSLM/).
+Son [code source](site/) et son déploiement GitHub Pages sont inclus dans le
+dépôt.
 
 Consultez aussi les consignes de contribution dans
 [`instructions.md`](instructions.md) et les règles de sécurité dans
