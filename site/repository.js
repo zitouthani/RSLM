@@ -44,7 +44,9 @@
   document.querySelectorAll(".documentation-link").forEach((link) => {
     if (repositoryUrl) {
       const documentPath = link.dataset.document;
-      link.href = `${repositoryUrl}/blob/${encodeURIComponent(branch)}/${documentPath}`;
+      const line = link.dataset.line;
+      const fragment = line ? `#L${line}` : "";
+      link.href = `${repositoryUrl}/blob/${encodeURIComponent(branch)}/${documentPath}${fragment}`;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
     } else {
