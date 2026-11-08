@@ -24,6 +24,10 @@ et tests explicites.
   des rapports ou des métriques publics sans autorisation.
 - Toute publication d'un corpus de démonstration doit confirmer les droits de
   redistribution et documenter sa provenance.
+- Le frontend React de comparaison conserve les conversations dans le
+  `localStorage` du navigateur : elles sont locales à ce navigateur, non
+  chiffrées et distinctes du stockage Streamlit. Ne pas y saisir de contenu
+  sensible sans en accepter cette persistance.
 - Les traces XAI peuvent contenir les questions, l'historique, les passages
   retrouvés et les réponses ; leur collecte est désactivée par défaut.
 - Les journaux d'audit (`AUDIT_LOG_ENABLED`) et les diagnostics contenant des
@@ -45,6 +49,11 @@ et tests explicites.
 - CORS n'est pas un contrôle d'accès. Garder `RSLM_ALLOWED_ORIGINS` limité
   aux origines locales ; n'autoriser une origine publique qu'avec une
   authentification et une autorisation côté serveur.
+- Les variables `VITE_*` du frontend sont intégrées au code envoyé au
+  navigateur et ne doivent jamais contenir de secret. La clé d'administration
+  ne doit pas être codée dans le frontend React ni persistée par celui-ci. Une
+  clé saisie explicitement par l'utilisateur reste temporaire en mémoire et ne
+  doit servir qu'à des appels vers l'API locale protégée.
 - Une clé d'administration ne protège pas automatiquement les routes de chat,
   les journaux, les fichiers PDF servis ou le serveur lui-même.
 

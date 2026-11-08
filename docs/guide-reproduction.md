@@ -14,6 +14,7 @@ RSLM comporte quatre composants principaux :
 | Composant | Rôle |
 | --- | --- |
 | Streamlit | Interface conversationnelle et administration locale du corpus |
+| React/Vite | Interface de comparaison expérimentale pour le chat; historique local au navigateur |
 | FastAPI | Recherche, préparation du contexte, génération et endpoints d'administration |
 | Sentence Transformers | Embeddings BAAI/bge-m3 et reranking BAAI/bge-reranker-v2-m3 |
 | Qdrant et Ollama | Recherche vectorielle et génération du texte |
@@ -25,6 +26,7 @@ uniquement des PDF dont vous pouvez légalement traiter le contenu.
 ## 2. Vérifier les prérequis
 
 - Python 3.11 ou plus récent.
+- Node.js 20.19+ ou 22.12+ et npm, uniquement pour l'interface React/Vite.
 - Git pour cloner le dépôt, ou une copie locale du code.
 - Ollama installé et accessible sur le poste.
 - De l'espace disque et un accès réseau au premier lancement : Ollama et
@@ -160,6 +162,27 @@ python -m uvicorn src.api_stream3:app --host 127.0.0.1 --port 8080
 ```sh
 RSLM_API_URL=http://127.0.0.1:8080 python -m streamlit run src/app_stream.py
 ```
+
+Pour comparer l'interface React, garder l'API démarrée et utiliser un autre
+terminal depuis la racine du dépôt :
+
+```powershell
+Set-Location frontend
+npm install
+Copy-Item .env.example .env.local
+npm run dev
+```
+
+Ouvrir `http://localhost:5173`. Sous Linux/macOS, remplacer `Copy-Item` par
+`cp .env.example .env.local`. L'administration des documents reste dans
+Streamlit; l'historique du frontend React est conservé dans le navigateur.
+
+Pour interroger les PDF existants dans `documents/`, définir `RSLM_ADMIN_KEY`
+dans `.env` avant de lancer l'API. Dans le panneau « Corpus documentaire » de
+React, saisir cette clé et charger la liste. Les PDF marqués « À indexer »
+peuvent ensuite être indexés depuis leur ligne. Un fichier déposé dans le
+dossier n'est pas indexé automatiquement; la réindexation d'un PDF déjà
+indexé crée d'abord une sauvegarde.
 
 ## 6. Ajouter et indexer un corpus autorisé
 

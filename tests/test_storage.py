@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
+from streamlit.testing.v1 import AppTest
 
 from src import chat_store
 from src.audit_logger import write_audit_log
@@ -29,7 +30,91 @@ from src.qdrant_connection import (
 from src.retrieval import apply_document_exclusions, parse_excluded_documents
 from src.evaluate_retrieval import reciprocal_rank, source_matches
 from src.evaluate_answers import evaluate_answer
-from src.xai_trace import citation_provenance, write_xai_trace
+from src.xai_trace import build_retrieval_graph, citation_provenance, retrieval_graph_mermaid, write_xai_trace
+
+
+class RetrievalGraphTests(unittest.TestCase):
+    def test_streamlit_displays_graph_from_a_synthetic_conversation(self):
+        graph = {
+            "question": "Question fictive", "search_query": "tri",
+            "question_terms": ["tri"], "shared_terms": ["tri"],
+            "guardrail_allowed": True,
+            "candidates": [{"id": "1", "document": "guide.pdf", "page": 2, "vector_rank": 1, "vector_score": 0.8, "rerank_rank": 1, "reranker_score": 0.9, "reason": "selected", "preview": "Passage fictif"}],
+        }
+        with tempfile.TemporaryDirectory() as directory, patch.object(chat_store, "DATABASE_PATH", Path(directory) / "test.sqlite3"), patch("dotenv.load_dotenv", return_value=False):
+            app = AppTest.from_file(str(Path(__file__).resolve().parent.parent / "src" / "app_stream.py"), default_timeout=30)
+            app.session_state["messages"] = [{"role": "assistant", "content": "Réponse fictive", "retrieval_graph": graph, "sources": [{"document": "guide.pdf", "page": 2, "extrait": "tSortRow\nPassage fictif"}]}]
+            app.run()
+            self.assertFalse(app.exception)
+            self.assertTrue(any(element.label == "Graphe de recherche" for element in app.expander))
+            self.assertTrue(any("flowchart TD" in element.value for element in app.markdown))
+            self.assertTrue(any("Passage 1" in element.value for element in app.text))
+            self.assertTrue(any(element.value == "tSortRow\nPassage fictif" for element in app.text))
+
+    def test_mermaid_does_not_interpret_document_or_question_as_diagram_code(self):
+        graph = {
+            "question": 'secret"] --> injected["bad',
+            "search_query": "trier",
+            "guardrail_allowed": True,
+            "candidates": [{"document": 'secret"] --> injected["bad', "reason": "selected"}, {"reason": "rank_limit"}],
+        }
+        diagram = retrieval_graph_mermaid(graph)
+        self.assertIn('candidate1["Passage 1 : Retenu"]', diagram)
+        self.assertIn('candidate1 --> context', diagram)
+        self.assertNotIn('candidate2 --> context', diagram)
+        self.assertNotIn("secret", diagram)
+        self.assertNotIn("injected", diagram)
+
+    def test_graph_distinguishes_candidates_and_reports_real_selection(self):
+        trace = {
+            "question": "Comment trier ?",
+            "search_query": "Comment trier ?",
+            "retrieval_path": [
+                {"candidate_id": "a", "rank": 1, "document": "guide.pdf", "page": 2, "vector_score": 0.9, "text_preview": "Extrait A"},
+                {"candidate_id": "b", "rank": 2, "document": "guide.pdf", "page": 2, "vector_score": 0.8, "text_preview": "Extrait B"},
+                {"candidate_id": "c", "rank": 3, "document": "autre.pdf", "page": 1, "vector_score": 0.7, "text_preview": "Extrait C"},
+            ],
+            "excluded_candidates": [{"candidate_id": "c"}],
+            "reranked_candidates": [
+                {"candidate_id": "b", "rank": 1, "reranker_score": 0.6},
+                {"candidate_id": "a", "rank": 2, "reranker_score": 0.4},
+            ],
+            "selected_context": [{"candidate_id": "b", "text": "Passage transmis B"}],
+            "guardrail": {"allowed": True, "question_terms": ["trier"], "shared_terms": ["trier"]},
+            "reranker_used": True,
+            "final_limit": 1,
+            "conversation_history": [{"content": "do not include"}],
+        }
+        graph = build_retrieval_graph(trace)
+        self.assertEqual([item["reason"] for item in graph["candidates"]], ["rank_limit", "selected"])
+        self.assertEqual(graph["excluded_count"], 1)
+        self.assertNotIn("autre.pdf", json.dumps(graph))
+        self.assertEqual(graph["candidates"][1]["reranker_score"], 0.6)
+        self.assertEqual(graph["candidates"][1]["preview"], "Passage transmis B")
+        self.assertNotIn("conversation_history", graph)
+
+    def test_graph_marks_blocked_candidates_and_vector_fallback(self):
+        trace = {
+            "retrieval_path": [{"candidate_id": "a", "rank": 1, "document": "guide.pdf", "page": 1, "vector_score": 0.4}],
+            "reranked_candidates": [{"candidate_id": "a", "rank": 1, "reranker_score": 0.4}],
+            "guardrail": {"allowed": False},
+            "reranker_used": False,
+            "final_limit": 3,
+        }
+        graph = build_retrieval_graph(trace)
+        self.assertEqual(graph["candidates"], [])
+        self.assertEqual(graph["withheld_count"], 1)
+        self.assertNotIn("guide.pdf", json.dumps(graph))
+
+    def test_graph_does_not_label_vector_fallback_as_reranker_score(self):
+        trace = {
+            "retrieval_path": [{"candidate_id": "a", "rank": 1, "document": "guide.pdf", "page": 1, "vector_score": 0.7}],
+            "reranked_candidates": [{"candidate_id": "a", "rank": 1, "reranker_score": 0.7}],
+            "guardrail": {"allowed": True},
+            "reranker_used": False,
+            "final_limit": 3,
+        }
+        self.assertIsNone(build_retrieval_graph(trace)["candidates"][0]["reranker_score"])
 
 
 class ChatStoreTests(unittest.TestCase):

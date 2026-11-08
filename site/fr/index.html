@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="RSLM est un assistant documentaire local basé sur le RAG, avec citations de sources, FastAPI, Streamlit, Qdrant et Ollama.">
+    <meta name="description" content="RSLM est un assistant documentaire local basé sur le RAG, avec citations de sources, FastAPI, Streamlit, React/Vite, Qdrant et Ollama.">
     <meta name="theme-color" content="#101a2d">
     <title>RSLM — assistant documentaire local</title>
     <link rel="stylesheet" href="../assets/site.css">
@@ -26,7 +26,7 @@
           <a class="button button-primary repository-link" href="#" rel="noopener">Voir le code sur GitHub <span aria-hidden="true">↗</span></a>
           <a class="button button-secondary readme-link" data-language="fr" href="#">Lire le guide d’installation</a>
         </div>
-        <p class="small-note">Python · FastAPI · Streamlit · Qdrant · Sentence Transformers · Ollama</p>
+        <p class="small-note">Python · FastAPI · Streamlit · React/Vite · Qdrant · Sentence Transformers · Ollama</p>
       </section>
 
       <section class="section">
@@ -47,8 +47,8 @@
       <section class="section">
         <div class="wrap">
           <div class="section-heading"><p class="eyebrow">Architecture</p><h2>Des composants spécialisés, reliés simplement.</h2></div>
-          <pre class="architecture">Navigateur → Streamlit → FastAPI → Ollama
-                         └→ Qdrant
+          <pre class="architecture">Navigateur → Streamlit ou React/Vite → FastAPI → Ollama
+                                      └→ Qdrant
 PDF → extraction → passages → embeddings → index vectoriel
                      └→ reranking → contexte → réponse sourcée</pre>
         </div>

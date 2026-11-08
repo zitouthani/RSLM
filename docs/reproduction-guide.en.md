@@ -11,6 +11,7 @@ prototypes or machine-specific paths.
 | Component | Responsibility |
 | --- | --- |
 | Streamlit | Conversational UI and local corpus administration |
+| React/Vite | Experimental chat comparison UI; browser-local history |
 | FastAPI | Retrieval, context preparation, generation, and admin endpoints |
 | Sentence Transformers | BAAI/bge-m3 embeddings and BAAI/bge-reranker-v2-m3 reranking |
 | Qdrant and Ollama | Vector retrieval and text generation |
@@ -21,6 +22,7 @@ and logs are not included. Use documents you are authorized to process.
 ## 2. Check prerequisites
 
 - Python 3.11 or newer.
+- Node.js 20.19+ or 22.12+ and npm, only for the React/Vite interface.
 - Git, or a local copy of the source.
 - Ollama installed and reachable on the machine.
 - Disk space and network access on first startup to download models.
@@ -148,6 +150,26 @@ python -m uvicorn src.api_stream3:app --host 127.0.0.1 --port 8080
 ```sh
 RSLM_API_URL=http://127.0.0.1:8080 python -m streamlit run src/app_stream.py
 ```
+
+To compare the React UI, keep the API running and use another terminal from
+the repository root:
+
+```powershell
+Set-Location frontend
+npm install
+Copy-Item .env.example .env.local
+npm run dev
+```
+
+Open `http://localhost:5173`. On Linux/macOS, replace `Copy-Item` with
+`cp .env.example .env.local`. Corpus administration remains in Streamlit;
+React conversation history is stored in this browser.
+
+To query PDFs already in `documents/`, set `RSLM_ADMIN_KEY` in `.env` before
+starting the API. In React’s “Corpus documentaire” panel, enter the key and
+load the list. Click **Indexer** for files marked as not indexed. A PDF
+copied into the folder is not indexed automatically; reindexing an already
+indexed PDF first creates a backup.
 
 ## 6. Add and index an authorized corpus
 

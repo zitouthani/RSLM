@@ -19,6 +19,7 @@ from src.chat_store import (
     save_conversation,
 )
 from src.console import configure_console_encoding
+from src.xai_trace import retrieval_graph_mermaid
 
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
@@ -144,9 +145,46 @@ def render_sources(sources, request_id):
                 else:
                     st.markdown(f"**{document} · page {page}**")
                 if source.get("extrait"):
-                    st.caption(source["extrait"])
+                    st.text(source["extrait"])
             else:
                 st.write(source)
+
+
+def render_retrieval_graph(graph):
+    if not graph:
+        return
+
+    reasons = {
+        "selected": "Transmis au modèle",
+        "rank_limit": "Au-delà des passages retenus",
+        "context_limit": "Limite de taille du contexte atteinte",
+    }
+    with st.expander("Graphe de recherche"):
+        st.mermaid_chart(retrieval_graph_mermaid(graph))
+        st.text(f"Question : {graph.get('question', '')}")
+        if not graph.get("search_query"):
+            st.caption("Cette réponse n'a pas utilisé de recherche documentaire.")
+            return
+        st.text(f"Requête recherchée : {graph['search_query']}")
+        terms = graph.get("question_terms", [])
+        shared = graph.get("shared_terms", [])
+        st.text(f"Termes du contrôle lexical : {', '.join(terms) or 'aucun'}")
+        st.text(f"Mots communs aux passages examinés : {', '.join(shared) or 'aucun'}")
+        if graph.get("guardrail_allowed") is False:
+            st.caption("Recherche refusée par le contrôle de pertinence.")
+        if graph.get("excluded_count"):
+            st.caption(f"Passages de documents exclus : {graph['excluded_count']}")
+        for index, candidate in enumerate(graph.get("candidates", []), start=1):
+            st.text(f"Passage {index} : {candidate['document']} · page {candidate['page']}")
+            st.text(reasons.get(candidate.get("reason"), "Non retenu"))
+            st.text(f"Recherche #{candidate['vector_rank']} · score {candidate['vector_score']}")
+            if candidate.get("rerank_rank") is not None:
+                st.text(f"Classement #{candidate['rerank_rank']}")
+            if candidate.get("reranker_score") is not None:
+                st.text(f"Score reranker : {candidate['reranker_score']}")
+            if candidate.get("preview"):
+                st.text(candidate["preview"])
+        st.caption("Les mots servent au contrôle lexical, pas à la recherche vectorielle. Les sources ne prouvent pas chaque affirmation.")
 
 
 def render_feedback(message):
@@ -805,6 +843,7 @@ for msg in st.session_state.messages:
         st.markdown(msg["content"])
         if msg["role"] == "assistant":
             render_sources(msg.get("sources", []), msg.get("request_id"))
+            render_retrieval_graph(msg.get("retrieval_graph"))
             if msg.get("score_confiance") is not None:
                 st.caption(
                     f"Score de recherche : {msg['score_confiance']:.2f} "
@@ -855,6 +894,7 @@ if question:
 
         full_response = ""
         sources = []
+        retrieval_graph = None
         score = 0.0
         request_id = None
 
@@ -1013,6 +1053,7 @@ if question:
                         0.0,
                     )
                     request_id = data.get("request_id")
+                    retrieval_graph = data.get("retrieval_graph")
 
                     final_received = True
 
@@ -1065,6 +1106,7 @@ if question:
             # ------------------------------------------------
 
             render_sources(sources, request_id)
+            render_retrieval_graph(retrieval_graph)
             st.caption(
                 f"Score de recherche : {score:.2f} "
                 "(indicateur de pertinence, pas une probabilité)"
@@ -1094,6 +1136,7 @@ if question:
                 "role": "assistant",
                 "content": full_response,
                 "sources": sources,
+                "retrieval_graph": retrieval_graph,
                 "score_confiance": score,
                 "request_id": request_id,
             }

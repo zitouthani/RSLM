@@ -13,6 +13,8 @@ Lorsque `XAI_TRACE_ENABLED=true`, l’API écrit une trace JSONL locale par requ
 
 La trace documente le parcours de recherche utilisé pour produire une réponse. Le pipeline actuel ne contient pas de graphe de connaissances ; il n’existe donc aucune provenance de parcours de graphe à enregistrer.
 
+L'API renvoie aussi, indépendamment de l'enregistrement de traces XAI, un graphe de recherche pour chaque nouvelle réponse. Les interfaces React et Streamlit présentent les rangs et scores des candidats autorisés, les passages préparés pour le modèle et les termes du contrôle lexical. Pour un passage retenu, le graphe et les sources affichent le texte préparé pour le modèle ; les autres candidats restent des aperçus. Ce contrôle lexical utilise les textes retenus après application des limites de contexte ; la recherche Qdrant elle-même utilise des vecteurs. Le graphe ne montre pas le contenu des documents exclus ni des candidats d'une recherche refusée. Les extraits affichés sont stockés dans l'historique React non chiffré du navigateur et inclus dans l'export de conversation, ou dans l'historique local Streamlit. Les réponses antérieures restent inchangées.
+
 ## Ce que la trace ne prouve pas
 
 La présence d’une source dans le contexte ne prouve pas que chaque affirmation de la réponse est étayée par cette source. Les références sont associées à la réponse, et non alignées automatiquement sur chacune de ses affirmations. Les scores de similarité et de reranking mesurent le classement des passages ; ils ne sont pas des probabilités de vérité.

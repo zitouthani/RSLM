@@ -9,6 +9,10 @@ venv/
 __pycache__/
 *.py[cod]
 
+# React/Vite build output and local dependencies
+frontend/node_modules/
+frontend/dist/
+
 # Local models and document corpus
 models/
 documents/*

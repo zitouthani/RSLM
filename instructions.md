@@ -6,11 +6,12 @@ entrées utilisateur, l'API, le stockage, l'indexation ou la configuration.
 
 ## Présentation du projet
 
-RSLM est un assistant documentaire local composé d'une interface
-Streamlit, d'une API FastAPI, de Qdrant et d'Ollama. Le projet est structuré
-ainsi :
+RSLM est un assistant documentaire local composé d'une interface Streamlit,
+d'un frontend React/Vite expérimental, d'une API FastAPI, de Qdrant et d'Ollama.
+Le projet est structuré ainsi :
 
 - `src/app_stream.py` : interface Streamlit et appels à l'API.
+- `frontend/` : interface React/Vite expérimentale pour le chat; historique isolé dans le navigateur.
 - `src/api_stream3.py` : API, recherche documentaire, génération et
   administration du corpus.
 - `src/retrieval.py`, `src/qdrant_connection.py` et
@@ -36,6 +37,23 @@ Copy-Item .env.example .env
 ollama pull qwen2.5:1.5b
 ```
 
+Pour lancer l'interface React/Vite en plus ou à la place de Streamlit,
+installez Node.js 20.19+ ou 22.12+ et npm. Depuis un autre terminal :
+
+```powershell
+Set-Location frontend
+npm install
+Copy-Item .env.example .env.local
+npm run dev
+```
+
+Le frontend utilise `VITE_API_BASE_URL` pour joindre FastAPI. Sa configuration
+par défaut vise `http://127.0.0.1:8080`; ouvrez l'interface sur
+`http://localhost:5173` pour correspondre à l'origine CORS locale par défaut.
+Pour indexer les PDF présents dans `documents/`, configurer `RSLM_ADMIN_KEY`
+dans `.env`, puis saisir cette clé dans le panneau « Corpus documentaire » du
+frontend React. La clé reste en mémoire pendant la session du navigateur.
+
 Configurez les paramètres locaux dans `.env`. Ne copiez aucune valeur secrète
 dans les sources, la documentation, les tests ou les journaux.
 
@@ -60,6 +78,9 @@ python -m streamlit run src\app_stream.py
   l'interface existante requiert une autre langue.
 - Garder l'interface Streamlit accessible : libellés de widgets explicites,
   éléments natifs en priorité, clés stables pour les widgets persistants.
+- Garder le frontend React dans `frontend/`; ne pas y déplacer les routes ni la
+  logique métier de l'API. Les changements doivent inclure `npm test -- --run`
+  et `npm run build` depuis ce dossier.
 - Ne pas ajouter de PDF, jeu d'évaluation privé, modèle ou capture d'écran
   provenant de données réelles sans autorisation claire.
 - Mettre à jour README et instructions si le lancement, la configuration ou
@@ -74,6 +95,9 @@ python -m unittest discover -s tests -v
 python -m compileall -q src tests
 docker compose config --quiet
 ```
+
+Pour l'interface React/Vite, depuis `frontend/`, lancer `npm install`,
+`npm test -- --run` et `npm run build`.
 
 Ajouter ou mettre à jour des tests pour tout changement de logique métier,
 d'indexation, de stockage, de sauvegarde ou de provenance. Ne pas lancer les

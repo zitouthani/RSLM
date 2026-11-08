@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="RSLM is a local RAG document assistant with source citations, built with FastAPI, Streamlit, Qdrant, and Ollama.">
+    <meta name="description" content="RSLM is a local RAG document assistant with source citations, built with FastAPI, Streamlit, React/Vite, Qdrant, and Ollama.">
     <meta name="theme-color" content="#101a2d">
     <title>RSLM — local document assistant</title>
     <link rel="stylesheet" href="../assets/site.css">
@@ -26,7 +26,7 @@
           <a class="button button-primary repository-link" href="#" rel="noopener">View the code on GitHub <span aria-hidden="true">↗</span></a>
           <a class="button button-secondary readme-link" data-language="en" href="#">Read the setup guide</a>
         </div>
-        <p class="small-note">Python · FastAPI · Streamlit · Qdrant · Sentence Transformers · Ollama</p>
+        <p class="small-note">Python · FastAPI · Streamlit · React/Vite · Qdrant · Sentence Transformers · Ollama</p>
       </section>
 
       <section class="section">
@@ -47,8 +47,8 @@
       <section class="section">
         <div class="wrap">
           <div class="section-heading"><p class="eyebrow">Architecture</p><h2>Focused components, connected simply.</h2></div>
-          <pre class="architecture">Browser → Streamlit → FastAPI → Ollama
-                       └→ Qdrant
+          <pre class="architecture">Browser → Streamlit or React/Vite → FastAPI → Ollama
+                                     └→ Qdrant
 PDF → extraction → passages → embeddings → vector index
                     └→ reranking → context → cited answer</pre>
         </div>

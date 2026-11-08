@@ -1,8 +1,8 @@
 # RSLM - Reproducible Small Language Model
 
 Assistant documentaire local basé sur la génération augmentée par récupération
-(RAG). RSLM assemble une API FastAPI, une interface Streamlit, Qdrant, des
-modèles Sentence Transformers et Ollama. Le projet fournit un parcours
+(RAG). RSLM assemble une API FastAPI, une interface Streamlit et un frontend
+React/Vite expérimental, Qdrant, des modèles Sentence Transformers et Ollama. Le projet fournit un parcours
 reproductible ; il n’entraîne pas ses propres poids de modèle de langage.
 
 **Lire ce projet dans une autre langue :** [Français](README.md) ·
@@ -27,16 +27,18 @@ Consultez aussi les consignes de contribution dans
 
 - Recherche dans des PDF avec références de documents et de pages.
 - Historique local des conversations et retours utilisateur.
+- Interface de chat React/Vite expérimentale, séparée de l’administration Streamlit.
 - Import, réindexation, suppression et restauration de documents via l’interface d’administration.
 - Sauvegardes du corpus et de l’historique.
 - Traçabilité des candidats de recherche, du contexte transmis au modèle et des sources présentées.
+- Graphe de recherche consultable par réponse dans React et Streamlit, avec rangs et scores des passages candidats.
 - Jeux d’évaluation configurables pour mesurer la récupération et vérifier les réponses sur un corpus donné.
 
 ## Architecture
 
 ```text
-Navigateur → Streamlit → FastAPI → Ollama
-                         └→ Qdrant
+Navigateur → Streamlit ou React/Vite → FastAPI → Ollama
+                                      └→ Qdrant
 PDF → extraction et découpage → embeddings → index vectoriel Qdrant
 ```
 
@@ -45,6 +47,7 @@ En mode local, Qdrant conserve son index dans `data/qdrant`. Avec Docker Compose
 ## Langages et technologies
 
 - **Python** : API, interface Streamlit, indexation et évaluations.
+- **React, JavaScript et Vite** : interface de chat expérimentale dans `frontend/`.
 - **HTML, CSS et JavaScript** : site statique bilingue.
 - **YAML** : Docker Compose et automatisations GitHub Actions.
 - **Markdown** : documentation et README en 23 langues.
@@ -56,6 +59,7 @@ poids sont des dépendances tierces et ne sont pas inclus dans le dépôt.
 ## Prérequis
 
 - Python 3.11 ou plus récent et les dépendances de `requirements.txt`.
+- Node.js 20.19+ ou 22.12+ et npm, uniquement pour le frontend React/Vite.
 - Ollama installé, démarré, et un modèle conversationnel disponible, par exemple `qwen2.5:1.5b`.
 - Pour Compose : Docker Desktop (Windows/macOS) ou Docker Engine avec le
   plugin Compose (Linux).
@@ -121,6 +125,31 @@ python -m uvicorn src.api_stream3:app --host 127.0.0.1 --port 8080
 RSLM_API_URL=http://127.0.0.1:8080 python -m streamlit run src/app_stream.py
 ```
 
+### Tester l’interface React/Vite
+
+L’interface de comparaison est indépendante et ne remplace pas Streamlit.
+Elle couvre le chat, les sources et les retours; l’administration du corpus
+reste dans Streamlit. Gardez l’API démarrée dans un terminal, puis dans un
+autre :
+
+```powershell
+Set-Location frontend
+npm install
+Copy-Item .env.example .env.local
+npm run dev
+```
+
+Ouvrez `http://localhost:5173`. Sous Linux/macOS, utilisez `cp .env.example
+.env.local` à la place de `Copy-Item`. L’URL de l’API se règle avec
+`VITE_API_BASE_URL` dans `frontend/.env.local`. L’historique React est stocké
+dans le `localStorage` de ce navigateur et n’est pas partagé avec Streamlit.
+Pour indexer les PDF déjà présents dans `documents/`, configurez
+`RSLM_ADMIN_KEY` dans `.env` avant de démarrer l’API. Dans le panneau
+« Corpus documentaire » de React, saisissez cette clé, chargez la liste puis
+cliquez sur **Indexer** pour les PDF à indexer. Un fichier copié dans le
+dossier n’est pas indexé automatiquement; une réindexation d’un document déjà
+indexé crée d’abord une sauvegarde.
+
 ## Corpus documentaire
 
 Le dépôt ne fournit **aucun PDF, modèle téléchargé, embedding ou autre corpus**. Ajoutez uniquement des documents que vous êtes autorisé à traiter et à redistribuer. Ces fichiers et leurs index restent locaux et sont exclus de Git et de l’image Docker.
@@ -173,9 +202,41 @@ Lancer les tests unitaires :
 python -m unittest discover -s tests -v
 ```
 
+Les tests et le build du frontend se lancent depuis `frontend/` :
+
+```sh
+npm install
+npm test -- --run
+npm run build
+```
+
 Les évaluations de recherche et de réponses attendent des jeux de données dans `data/retrieval_eval.json` et `data/answer_eval.json`. Ils ne sont pas inclus dans le dépôt : créez des annotations adaptées à votre corpus local. Les scripts écrivent leurs résultats dans `logs`, également ignoré par Git.
 
 Les métriques de couverture lexicale et de présence des sources sont des aides à l’évaluation, pas des preuves automatiques de vérité ou de fidélité. Pour interpréter la provenance et les limites des traces, voir [xai.md](xai.md).
+
+Le graphe de recherche montre les candidats autorisés, leur classement et les passages préparés pour le modèle. Il décrit le parcours de recherche, pas un graphe de connaissances du corpus. Les mots affichés concernent le contrôle lexical ; la recherche initiale est vectorielle. Les passages retenus commencent si nécessaire à un terme de la question et restent soumis aux limites de contexte ; les sources et le graphe affichent ce même texte. Les autres candidats restent des aperçus. Ces extraits documentaires sont stockés avec la conversation : dans le `localStorage` du navigateur et l'export JSON pour React, ou dans l'historique local des conversations pour Streamlit. Les détails des documents exclus ou d'une recherche refusée ne sont pas transmis dans le graphe. Les anciennes réponses ne sont pas modifiées.
+
+## Matériel et performances
+
+Le poste utilisé pour les essais locaux, relevé le 8 novembre 2026, dispose de :
+
+- Windows 11 Professionnel, Intel Core i5-1135G7 (4 cœurs, 8 threads) et 15,7 Gio de RAM utilisable.
+- Un GPU intégré Intel Iris Xe, qui partage la mémoire du système.
+- Un SSD NVMe KIOXIA d'environ 954 Gio ; les volumes système et projet sont sur ce SSD.
+- PyTorch 2.13.0 installé en version CPU et Ollama 0.34.1. PyTorch ne détectait ni CUDA ni périphérique Intel XPU utilisable dans cet environnement.
+
+Le SSD est déjà utilisé pour les fichiers placés sur ces volumes : il peut accélérer le chargement et l'indexation, mais ne garantit pas une génération plus rapide. Ollama et PyTorch gèrent séparément les accélérateurs. `vulkaninfo --summary` détecte l'Iris Xe avec Vulkan 1.4 et le pilote Intel 101.6913. Une instance Ollama 0.34.1 isolée a détecté ce GPU en démarrant avec `OLLAMA_VULKAN=1` et `OLLAMA_IGPU_ENABLE=1` ; sans cette dernière option, Ollama l'a ignoré. Aucun modèle n'a été chargé sur le GPU lors de cet essai : la génération et le gain éventuel restent à vérifier, et le GPU intégré partage la RAM du système. Consultez la [documentation matérielle d'Ollama](https://docs.ollama.com/gpu) avant tout changement.
+
+Pour contrôler l'environnement Python du projet et le placement d'un modèle Ollama chargé :
+
+```powershell
+.\.venv\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available(), hasattr(torch, 'xpu') and torch.xpu.is_available())"
+ollama ps
+```
+
+Sur dix paires de textes fictifs, le reranker BGE a pris 13,64 s avec des lots de 2, contre 22,33 à 24,58 s avec des lots de 8 ; le classement était identique sur cet essai. Ces chiffres ne mesurent ni une réponse complète ni la qualité sur un corpus réel. La comparaison CPU/GPU et les performances sur documents restent à mesurer ; elles dépendent notamment de la mémoire disponible et de la longueur des passages.
+
+Sur un PDF local autorisé, trois lectures et extractions des cinq premières pages avec `pypdf` ont pris 0,64, 0,51 et 0,48 s, soit une médiane de 0,51 s. Le cache système n'a pas été vidé : ce résultat comprend le traitement du PDF et ne constitue ni un test de débit du SSD ni une mesure d'indexation complète.
 
 ## Licence
 

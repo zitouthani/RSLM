@@ -11,7 +11,7 @@ flowchart TD
     A["1 · Cadrer le besoin<br/>Corpus autorisé, questions, contraintes locales"] --> B["2 · Construire le socle documentaire<br/>PDF → pages → sections → chunks"]
     B --> C["3 · Indexer et établir une référence<br/>BGE-M3 → Qdrant → premiers tests de recherche"]
     C --> D["4 · Ajouter la génération contrôlée<br/>Reranking → contexte limité → Ollama → sources"]
-    D --> E["5 · Rendre le prototype utilisable<br/>FastAPI → streaming → Streamlit"]
+   D --> E["5 · Rendre le prototype utilisable<br/>FastAPI → streaming → Streamlit + React/Vite expérimental"]
     E --> F["6 · Fiabiliser les données<br/>Historique → gestion corpus → sauvegardes/restauration"]
     F --> G["7 · Vérifier les résultats<br/>Benchmark retrieval → contrôles réponse → traces XAI"]
     G --> H["8 · Reproduire et présenter<br/>Docker Compose → README 23 langues → site bilingue Pages"]
@@ -30,7 +30,7 @@ flowchart TD
 | 2. Ingestion | Extraire les pages PDF, préserver les métadonnées de page, nettoyer les éléments répétitifs et découper par section. | `src/prepare_documents.py`, `src/create_chunks.py`. |
 | 3. Recherche | Calculer les embeddings, créer l'index, tester la récupération et inspecter les pages remontées. | `src/create_embeddings.py`, `src/create_vector_db.py`, `src/search.py`. |
 | 4. RAG | Reranker les candidats, limiter le contexte et demander une réponse fondée sur les sources; contrôler les réponses hors corpus. | `src/api_stream3.py`, `src/retrieval.py`. Les garde-fous réduisent le risque, sans prouver la vérité. |
-| 5. Produit utilisable | Exposer des routes FastAPI et proposer chat, streaming, sources et retours dans Streamlit. | `src/api_stream3.py`, `src/app_stream.py`. |
+| 5. Produit utilisable | Exposer des routes FastAPI et proposer chat, streaming, sources et retours dans Streamlit; ajouter un client React/Vite expérimental pour comparer l'interface. | `src/api_stream3.py`, `src/app_stream.py`, `frontend/`. L'administration reste dans Streamlit. |
 | 6. Fiabilité des données | Conserver l'historique, gérer les PDF et les passages Qdrant, sauvegarder et restaurer. | `src/chat_store.py`, `src/backup_store.py`, routes d'administration et tests de stockage. |
 | 7. Évaluation et observabilité | Mesurer le classement sur des labels; vérifier couverture lexicale et provenance; enregistrer les étapes si les traces sont activées. | `src/evaluate_retrieval.py`, `src/evaluate_answers.py`, `src/xai_trace.py`. Les jeux de référence privés ne sont pas distribués. |
 | 8. Reproductibilité et présentation | Décrire les parcours local et Docker, exclure les données locales, fournir des résumés README dans 23 langues et des guides/site détaillés en français et anglais. | Dockerfile, Compose, `docs/`, `docs/readme/`, `site/` et workflow Pages. Docker Pages ne remplace pas l'hébergement de l'API. |

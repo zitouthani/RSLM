@@ -11,7 +11,7 @@ flowchart TD
     A["1 · Define the need<br/>Authorized corpus, questions, local constraints"] --> B["2 · Build document processing<br/>PDF → pages → sections → chunks"]
     B --> C["3 · Index and establish a baseline<br/>BGE-M3 → Qdrant → retrieval checks"]
     C --> D["4 · Add controlled generation<br/>Reranking → bounded context → Ollama → sources"]
-    D --> E["5 · Make the prototype usable<br/>FastAPI → streaming → Streamlit"]
+    D --> E["5 · Make the prototype usable<br/>FastAPI → streaming → Streamlit + experimental React/Vite"]
     E --> F["6 · Make data reliable<br/>History → corpus management → backup/restore"]
     F --> G["7 · Evaluate behavior<br/>Retrieval benchmark → answer checks → XAI traces"]
     G --> H["8 · Reproduce and present<br/>Docker Compose → 23-language READMEs → bilingual Pages site"]
@@ -30,7 +30,7 @@ flowchart TD
 | 2. Ingestion | Extract PDF pages, preserve page metadata, clean repeated lines, and chunk by section. | `src/prepare_documents.py`, `src/create_chunks.py`. |
 | 3. Retrieval | Create embeddings and an index, test retrieval, and inspect returned pages. | `src/create_embeddings.py`, `src/create_vector_db.py`, `src/search.py`. |
 | 4. RAG | Rerank candidates, bound context, generate answers from sources, and check out-of-corpus behavior. | `src/api_stream3.py`, `src/retrieval.py`. Guardrails reduce risk but do not prove truth. |
-| 5. Usable application | Expose FastAPI routes and provide chat, streaming, sources, and feedback in Streamlit. | `src/api_stream3.py`, `src/app_stream.py`. |
+| 5. Usable application | Expose FastAPI routes and provide chat, streaming, sources, and feedback in Streamlit; add an experimental React/Vite client for UI comparison. | `src/api_stream3.py`, `src/app_stream.py`, `frontend/`. Administration remains in Streamlit. |
 | 6. Data reliability | Persist history, manage PDFs and Qdrant passages, and back up/restore data. | `src/chat_store.py`, `src/backup_store.py`, admin routes, and storage tests. |
 | 7. Evaluation and observability | Benchmark retrieval, check lexical answer coverage and provenance, and log stages when tracing is enabled. | `src/evaluate_retrieval.py`, `src/evaluate_answers.py`, `src/xai_trace.py`. Private reference datasets are not included. |
 | 8. Reproducibility and presentation | Document local and Docker workflows, exclude local data, provide README overviews in 23 languages, and maintain detailed guides/site in French and English. | Dockerfile, Compose, `docs/`, `docs/readme/`, `site/`, and the Pages workflow. Docker Pages does not host the API. |

@@ -47,7 +47,7 @@ from .qdrant_connection import (
     remove_document_embeddings,
 )
 from .retrieval import apply_document_exclusions, parse_excluded_documents
-from .xai_trace import citation_provenance, write_xai_trace
+from .xai_trace import build_retrieval_graph, citation_provenance, write_xai_trace
 
 
 # ============================================================
@@ -151,7 +151,8 @@ RÈGLES ABSOLUES :
 - Ne fais aucune supposition.
 - Ne parle jamais de Google Cloud, d'autres produits,
   de personnes ou de sujets absents des extraits.
-- Si les extraits ne permettent pas de répondre précisément,
+- Si les extraits ne permettent pas de répondre à une question
+    sur la documentation elle-même,
   réponds exactement :
   "Je ne trouve pas d'information permettant de répondre
   à cette question dans la documentation fournie."
@@ -160,6 +161,24 @@ RÈGLES ABSOLUES :
   explicitement qui tu es.
 
 Les extraits de documentation sont la seule source autorisée.
+
+STYLE DE RÉPONSE (OBLIGATOIRE) :
+
+- Reformule les informations dans un langage clair et pédagogique.
+- Commence par une réponse directe en 1 à 2 phrases.
+- Ajoute ensuite des points clés courts si cela aide la compréhension.
+- N'utilise pas de copier-coller long des extraits, sauf si l'utilisateur
+    demande explicitement une citation textuelle.
+- Quand tu reprends un terme technique du document, explique-le simplement.
+- Reste factuel, concis et centré sur la question.
+- Distingue les exemples du document des faits concernant l'utilisateur.
+    Présente les exemples comme tels, sans supposer qu'ils s'appliquent
+    à sa situation. Par exemple, une colonne nommée dans un exemple n'est
+    pas nécessairement celle de l'utilisateur.
+- N'affirme qu'un détail concerne la situation de l'utilisateur que s'il
+    l'a explicitement fourni. Sinon, indique que ce détail est inconnu et,
+    si nécessaire, demande les informations permettant de le déterminer.
+- Ne transforme pas une hypothèse ou un exemple en fait établi.
 """
 
 
@@ -213,11 +232,18 @@ async def lifespan(app: FastAPI):
 
     print(f"📥 Chargement du reranker {RERANKER_MODEL}...")
     start = time.perf_counter()
-    models["reranker"] = CrossEncoder(RERANKER_MODEL)
-    print(
-        f"   ✅ Reranker chargé en "
-        f"{time.perf_counter() - start:.2f}s"
-    )
+    try:
+        models["reranker"] = CrossEncoder(RERANKER_MODEL)
+        print(
+            f"   ✅ Reranker chargé en "
+            f"{time.perf_counter() - start:.2f}s"
+        )
+    except Exception as load_error:
+        models["reranker"] = None
+        print(
+            "   ⚠️ Reranker indisponible, fallback sur le score vectoriel "
+            f"({load_error})"
+        )
 
 # Préparation du classificateur d'intentions
     print("📥 Préparation des intentions conversationnelles...")
@@ -330,8 +356,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_CORS_ORIGINS,
     allow_credentials=False,
-    allow_methods=["POST", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Admin-Key"],
 )
 
 # ============================================================
@@ -1084,12 +1110,21 @@ def reranker_sort(
     if not candidates:
         return []
 
-    scores = models["reranker"].predict(
+    reranker = models.get("reranker")
+    if reranker is None:
+        if include_scores:
+            return [
+                (result, float(result.score))
+                for result in candidates
+            ]
+        return candidates
+
+    scores = reranker.predict(
         [
             [search_query, result.payload.get("text", "")]
             for result in candidates
         ],
-        batch_size=8,
+        batch_size=2,
         show_progress_bar=False,
     )
     ranked = sorted(
@@ -1108,7 +1143,8 @@ def reranker_sort(
 
 def verifier_pertinence(
     question: str,
-    candidats: list
+    candidats: list,
+    context_items: list[dict],
 ) -> tuple[bool, float, set[str], set[str]]:
 
     if not candidats:
@@ -1121,8 +1157,8 @@ def verifier_pertinence(
     )
 
     texte_recupere = " ".join(
-        result.payload.get("text", "")
-        for result in candidats[:FINAL_LIMIT]
+        item["text"]
+        for item in context_items
     )
 
     contexte_terms = (
@@ -1140,7 +1176,7 @@ def verifier_pertinence(
     # CAS 1 : score insuffisant
     # --------------------------------------------------------
 
-    if best_score < MIN_QDRANT_SCORE:
+    if not context_items or best_score < MIN_QDRANT_SCORE:
         return (
             False,
             best_score,
@@ -1182,8 +1218,32 @@ def verifier_pertinence(
 # CONSTRUCTION DU CONTEXTE
 # ============================================================
 
+def selectionner_fenetre(texte: str, question: str, longueur: int, seuil: int) -> str:
+    termes_question = extraire_termes_significatifs(question)
+    termes_techniques = {
+        normaliser_texte(mot)
+        for mot in re.findall(r"\w+", question)
+        if normaliser_texte(mot) in termes_question
+        and (any(caractere.isupper() for caractere in mot[1:])
+             or any(caractere.isdigit() for caractere in mot)
+             or "_" in mot)
+    }
+    correspondances = [
+        (match.start(), normaliser_texte(match.group()))
+        for match in re.finditer(r"\w+", texte)
+        if normaliser_texte(match.group()) in termes_question
+    ]
+    correspondance = next(
+        (position for position, mot in correspondances if mot in termes_techniques),
+        correspondances[0][0] if correspondances else 0,
+    )
+    debut = correspondance if correspondance >= seuil else 0
+    return texte[debut:debut + longueur]
+
+
 def construire_contexte(
-    candidats: list
+    candidats: list,
+    question: str = "",
 ) -> tuple[str, list[dict], list[dict]]:
 
     context_parts = []
@@ -1205,7 +1265,7 @@ def construire_contexte(
         # Limitation de chaque chunk
         # ----------------------------------------------------
 
-        texte = texte[:MAX_CHARS_PER_CHUNK]
+        texte = selectionner_fenetre(texte, question, MAX_CHARS_PER_CHUNK, 600)
 
         # ----------------------------------------------------
         # Limitation globale du contexte
@@ -1238,6 +1298,7 @@ def construire_contexte(
         context_items.append(
             {
                 "rank": i + 1,
+                "candidate_id": str(result.id),
                 "document": doc_nom,
                 "page": page,
                 "vector_score": round(float(result.score), 4),
@@ -1247,13 +1308,14 @@ def construire_contexte(
 
         sources_utilisees.append(
             {
+                "candidate_id": str(result.id),
                 "document": doc_nom,
                 "page": page,
                 "url": (
                     f"{os.getenv('PUBLIC_API_BASE_URL', 'http://localhost:8080').rstrip('/')}"
                     f"/documents/{quote(str(doc_nom), safe='')}#page={page}"
                 ),
-                "extrait": texte[:600],
+                "extrait": texte,
                 "score": round(float(result.score), 4),
             }
         )
@@ -1275,11 +1337,42 @@ def _deduplicate_sources(sources: list[dict]) -> list[dict]:
     seen = set()
     unique = []
     for source in sources:
-        key = (source["document"], str(source["page"]))
+        key = (source["document"], str(source["page"]), source.get("candidate_id"))
         if key not in seen:
             seen.add(key)
             unique.append(source)
     return unique
+
+
+def _question_contains_explicit_user_context(question: str) -> bool:
+    normalized = normaliser_texte(question)
+    markers = (
+        "dans mon cas",
+        "dans notre cas",
+        "mon cas",
+        "notre cas",
+        "ma table",
+        "mon fichier",
+        "mes donnees",
+        "j ai",
+        "nous avons",
+    )
+    return any(marker in normalized for marker in markers)
+
+
+def corriger_affirmation_de_cas(question: str, answer: str) -> str:
+    if not answer:
+        return answer
+
+    if _question_contains_explicit_user_context(question):
+        return answer
+
+    return re.sub(
+        r"\bdans votre cas\b",
+        "Dans cet exemple",
+        answer,
+        flags=re.IGNORECASE,
+    )
 
 
 def _record_xai_trace(
@@ -1537,10 +1630,16 @@ async def preparer_reponse(
     retrieved_candidates = [
         {
             "rank": index,
+            "candidate_id": str(result.id),
             "document": result.payload.get("document", "Inconnu"),
             "page": result.payload.get("page", "?"),
             "vector_score": round(float(result.score), 4),
-            "text_preview": result.payload.get("text", "")[:300],
+            "text_preview": selectionner_fenetre(
+                result.payload.get("text", ""),
+                f"{request.question} {search_query}",
+                300,
+                300,
+            ),
         }
         for index, result in enumerate(candidats, start=1)
     ]
@@ -1566,11 +1665,17 @@ async def preparer_reponse(
     reranked_trace = [
         {
             "rank": index,
+            "candidate_id": str(result.id),
             "document": result.payload.get("document", "Inconnu"),
             "page": result.payload.get("page", "?"),
             "vector_score": round(float(result.score), 4),
             "reranker_score": round(reranker_score, 4),
-            "text_preview": result.payload.get("text", "")[:300],
+            "text_preview": selectionner_fenetre(
+                result.payload.get("text", ""),
+                f"{request.question} {search_query}",
+                300,
+                300,
+            ),
         }
         for index, (result, reranker_score) in enumerate(
             reranked_candidates,
@@ -1646,6 +1751,8 @@ async def preparer_reponse(
                 "retrieval_path": retrieved_candidates,
                 "excluded_candidates": excluded_candidates,
                 "reranked_candidates": reranked_trace,
+                "reranker_used": models.get("reranker") is not None,
+                "final_limit": FINAL_LIMIT,
                 "selected_context": [],
                 "final_sources": [],
                 "graph_context": {
@@ -1667,11 +1774,19 @@ async def preparer_reponse(
     # 4. Guardrail
     # --------------------------------------------------------
 
+    start = time.perf_counter()
+    context_str, sources_utilisees, context_items = construire_contexte(
+        candidats,
+        question=f"{request.question} {search_query}",
+    )
+    context_time = time.perf_counter() - start
+    print(f"⏱️ Construction contexte : {context_time:.2f}s")
 
     autorise, best_score, question_terms, termes_communs = (
         verifier_pertinence(
             search_query,
             candidats,
+            context_items,
         )
     )
 
@@ -1738,11 +1853,14 @@ async def preparer_reponse(
                 "retrieval_path": retrieved_candidates,
                 "excluded_candidates": excluded_candidates,
                 "reranked_candidates": reranked_trace,
+                "reranker_used": models.get("reranker") is not None,
+                "final_limit": FINAL_LIMIT,
                 "selected_context": [],
                 "final_sources": [],
                 "guardrail": {
                     "allowed": False,
                     "best_vector_score": round(best_score, 4),
+                    "minimum_vector_score": MIN_QDRANT_SCORE,
                     "question_terms": sorted(question_terms),
                     "shared_terms": sorted(termes_communs),
                 },
@@ -1752,27 +1870,6 @@ async def preparer_reponse(
                 },
             },
         }
-
-    # --------------------------------------------------------
-    # 5. Contexte
-    # --------------------------------------------------------
-
-    start = time.perf_counter()
-
-    context_str, sources_utilisees, context_items = (
-        construire_contexte(
-            candidats
-        )
-    )
-
-    context_time = (
-        time.perf_counter() - start
-    )
-
-    print(
-        f"⏱️ Construction contexte : "
-        f"{context_time:.2f}s"
-    )
 
     # --------------------------------------------------------
     # Diagnostic contexte
@@ -1875,6 +1972,8 @@ async def preparer_reponse(
         "retrieval_path": retrieved_candidates,
         "excluded_candidates": excluded_candidates,
         "reranked_candidates": reranked_trace,
+        "reranker_used": models.get("reranker") is not None,
+        "final_limit": FINAL_LIMIT,
         "selected_context": context_items,
         "final_sources": cited_sources,
         "citation_provenance": citation_provenance(
@@ -1884,6 +1983,7 @@ async def preparer_reponse(
         "guardrail": {
             "allowed": True,
             "best_vector_score": round(best_score, 4),
+            "minimum_vector_score": MIN_QDRANT_SCORE,
             "question_terms": sorted(question_terms),
             "shared_terms": sorted(termes_communs),
         },
@@ -1951,6 +2051,7 @@ async def generate_stream(
             "type": "final",
             "reponse": prepared["reponse"],
             "sources": [],
+            "retrieval_graph": build_retrieval_graph(prepared.get("xai_trace") or {}),
             "score_confiance": prepared[
                 "score_confiance"
             ],
@@ -2126,17 +2227,26 @@ async def generate_stream(
         _record_xai_trace(
             prepared.get("xai_trace"),
             "success",
-            answer=full_response,
+            answer=corriger_affirmation_de_cas(
+                request.question,
+                full_response,
+            ),
         )
 
             # ----------------------------------------------------
             # Réponse finale
             # ----------------------------------------------------
 
+        safe_response = corriger_affirmation_de_cas(
+            request.question,
+            full_response,
+        )
+
         final_data = {
             "type": "final",
-            "reponse": full_response,
+            "reponse": safe_response,
             "sources": sources,
+            "retrieval_graph": build_retrieval_graph(prepared.get("xai_trace") or {}),
             "score_confiance": score,
             "request_id": request_id,
         }
@@ -2706,6 +2816,7 @@ async def chat_endpoint(
             return {
                 "reponse": prepared["reponse"],
                 "sources": [],
+                "retrieval_graph": build_retrieval_graph(prepared.get("xai_trace") or {}),
                 "score_confiance": prepared["score_confiance"],
                 "request_id": request_id,
             }
@@ -2756,11 +2867,19 @@ async def chat_endpoint(
             _record_xai_trace(
                 prepared.get("xai_trace"),
                 "success",
-                answer=response["message"]["content"],
+                answer=corriger_affirmation_de_cas(
+                    request.question,
+                    response["message"]["content"],
+                ),
+            )
+            safe_response = corriger_affirmation_de_cas(
+                request.question,
+                response["message"]["content"],
             )
             return {
-                "reponse": response["message"]["content"],
+                "reponse": safe_response,
                 "sources": prepared["sources"],
+                "retrieval_graph": build_retrieval_graph(prepared.get("xai_trace") or {}),
                 "score_confiance": prepared["score_confiance"],
                 "request_id": request_id,
             }
