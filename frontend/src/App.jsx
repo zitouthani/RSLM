@@ -111,6 +111,7 @@ export function RetrievalGraph({ graph, sources = [] }) {
               {graph.best_vector_score != null && graph.minimum_vector_score != null && <small>Meilleur score vectoriel : {graph.best_vector_score} · seuil : {graph.minimum_vector_score}</small>}
               {graph.guardrail_allowed === false && graph.best_vector_score < graph.minimum_vector_score && <small>Score vectoriel inférieur au seuil.</small>}
               {graph.guardrail_allowed === false && graph.best_vector_score >= graph.minimum_vector_score && terms.length > 0 && sharedTerms.length === 0 && <small>Aucun terme significatif commun.</small>}
+              {graph.guardrail_allowed === false && graph.missing_identifiers?.length > 0 && <small>Identifiants absents du contexte : {graph.missing_identifiers.join(", ")}</small>}
             </div>
             <div className="graph-edge">{graph.guardrail_allowed === true ? "Passages retenus pour le contexte" : "Aucun passage transmis au modèle"}</div>
             <div className="graph-node"><span>Réponse</span><strong>{graph.guardrail_allowed === true ? "Générée avec le contexte sélectionné" : "Sans contexte documentaire"}</strong></div>

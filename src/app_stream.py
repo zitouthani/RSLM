@@ -172,6 +172,8 @@ def render_retrieval_graph(graph):
         st.text(f"Mots communs aux passages examinés : {', '.join(shared) or 'aucun'}")
         if graph.get("guardrail_allowed") is False:
             st.caption("Recherche refusée par le contrôle de pertinence.")
+            if graph.get("missing_identifiers"):
+                st.text(f"Identifiants absents du contexte : {', '.join(graph['missing_identifiers'])}")
         if graph.get("excluded_count"):
             st.caption(f"Passages de documents exclus : {graph['excluded_count']}")
         for index, candidate in enumerate(graph.get("candidates", []), start=1):

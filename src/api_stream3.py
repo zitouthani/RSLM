@@ -186,6 +186,11 @@ REFUS_MESSAGE = (
     "Désolé, je n'ai pas accés à cette information. Je serais ravi de pouvoir vous aider si vous avez d'autes questions."
 )
 
+REFUS_IDENTIFIANTS_MESSAGE = (
+    "Je ne trouve pas les identifiants demandés dans les passages retenus. "
+    "Précisez votre question ou fournissez une documentation pertinente."
+)
+
 
 # ============================================================
 # OBJETS GLOBAUX
@@ -1141,10 +1146,27 @@ def reranker_sort(
 # CONTRÔLE DE PERTINENCE
 # ============================================================
 
+def extraire_identifiants_techniques(question: str) -> set[str]:
+    termes = extraire_termes_significatifs(question)
+    return {
+        normaliser_texte(mot)
+        for mot in re.findall(r"\w+", question)
+        if normaliser_texte(mot) in termes
+        and (
+            "_" in mot
+            or (
+                any(caractere.isupper() for caractere in mot[1:])
+                and any(caractere.islower() for caractere in mot)
+            )
+        )
+    }
+
+
 def verifier_pertinence(
     question: str,
     candidats: list,
     context_items: list[dict],
+    question_originale: str | None = None,
 ) -> tuple[bool, float, set[str], set[str]]:
 
     if not candidats:
@@ -1205,6 +1227,10 @@ def verifier_pertinence(
             question_terms,
             termes_communs,
         )
+
+    identifiants = extraire_identifiants_techniques(question_originale or question)
+    if not identifiants.issubset(contexte_terms):
+        return False, best_score, question_terms, termes_communs
 
     return (
         True,
@@ -1787,7 +1813,12 @@ async def preparer_reponse(
             search_query,
             candidats,
             context_items,
+            question_originale=request.question,
         )
+    )
+    identifiants_absents = sorted(
+        extraire_identifiants_techniques(request.question)
+        - extraire_termes_significatifs(" ".join(item["text"] for item in context_items))
     )
 
 
@@ -1830,7 +1861,7 @@ async def preparer_reponse(
 
         return {
             "autorise": False,
-            "reponse": REFUS_MESSAGE,
+            "reponse": REFUS_IDENTIFIANTS_MESSAGE if identifiants_absents else REFUS_MESSAGE,
             "sources": [],
             "score_confiance": round(
                 best_score,
@@ -1863,6 +1894,7 @@ async def preparer_reponse(
                     "minimum_vector_score": MIN_QDRANT_SCORE,
                     "question_terms": sorted(question_terms),
                     "shared_terms": sorted(termes_communs),
+                    "missing_identifiers": identifiants_absents,
                 },
                 "graph_context": {
                     "available": False,
@@ -1986,6 +2018,7 @@ async def preparer_reponse(
             "minimum_vector_score": MIN_QDRANT_SCORE,
             "question_terms": sorted(question_terms),
             "shared_terms": sorted(termes_communs),
+            "missing_identifiers": identifiants_absents,
         },
         "graph_context": {
             "available": False,

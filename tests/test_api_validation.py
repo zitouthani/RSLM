@@ -69,6 +69,51 @@ class ChatPromptTests(unittest.TestCase):
         self.assertFalse(allowed)
         self.assertEqual(shared, set())
 
+    def test_guardrail_rejects_missing_identifier_even_when_generic_term_matches(self):
+        candidate = SimpleNamespace(score=0.8)
+        allowed, _, _, shared = api_stream3.verifier_pertinence(
+            "Comment configurer tSortRow ?", [candidate], [{"text": "Pour configurer tFileList, ouvrez le panneau."}]
+        )
+        self.assertFalse(allowed)
+        self.assertIn("configurer", shared)
+
+    def test_guardrail_accepts_identifier_in_context_and_does_not_require_generic_terms(self):
+        candidate = SimpleNamespace(score=0.8)
+        allowed, _, _, _ = api_stream3.verifier_pertinence(
+            "Comment configurer tSortRow ?", [candidate], [{"text": "tSortRow trie les données."}]
+        )
+        self.assertTrue(allowed)
+
+    def test_guardrail_checks_original_identifier_after_query_reformulation(self):
+        candidate = SimpleNamespace(score=0.8)
+        allowed, _, _, _ = api_stream3.verifier_pertinence(
+            "Comment configurer le composant ?", [candidate], [{"text": "Configurer un autre composant."}],
+            question_originale="Comment configurer tSortRow ?",
+        )
+        self.assertFalse(allowed)
+
+    def test_guardrail_does_not_treat_sentence_case_or_acronyms_as_identifiers(self):
+        self.assertEqual(api_stream3.extraire_identifiants_techniques("Comment fonctionne un ETL ?"), set())
+
+    def test_guardrail_requires_each_explicit_identifier_as_a_full_term(self):
+        candidate = SimpleNamespace(score=0.8)
+        question = "Comparer tSortRow et tFileList"
+        allowed, _, _, _ = api_stream3.verifier_pertinence(
+            question, [candidate], [{"text": "tSortRow et tFileListExtra"}]
+        )
+        self.assertFalse(allowed)
+        allowed, _, _, _ = api_stream3.verifier_pertinence(
+            question, [candidate], [{"text": "TSORTROW et tFILELIST"}]
+        )
+        self.assertTrue(allowed)
+
+    def test_guardrail_detects_underscore_identifiers(self):
+        candidate = SimpleNamespace(score=0.8)
+        allowed, _, _, _ = api_stream3.verifier_pertinence(
+            "Comment configurer fichier_cible ?", [candidate], [{"text": "configurer une autre option"}]
+        )
+        self.assertFalse(allowed)
+
     def test_examples_are_not_presented_as_user_facts(self):
         messages = construire_messages(
             question="Quelle colonne utiliser ?",
@@ -82,6 +127,23 @@ class ChatPromptTests(unittest.TestCase):
 
 
 class ChatGraphEndpointTests(unittest.IsolatedAsyncioTestCase):
+    async def test_missing_identifier_refuses_both_routes_without_calling_ollama(self):
+        question = "Comment configurer tSortRow ?"
+        candidates = [SimpleNamespace(id="a", score=0.8, payload={"document": "guide.pdf", "page": 2, "text": "Pour configurer tFileList, ouvrez le panneau."})]
+        client = SimpleNamespace(chat=AsyncMock())
+        with patch.object(api_stream3, "detecter_intention_sociale", return_value=(None, None, 0.0, None)), patch.object(api_stream3, "reformuler_question", AsyncMock(return_value=question)), patch.object(api_stream3, "rechercher_documents", AsyncMock(return_value=(candidates, 0.0, 0.0))), patch.object(api_stream3, "EXCLUDED_DOCUMENTS", set()), patch.dict(models, {"reranker": SimpleNamespace(predict=lambda *args, **kwargs: [0.9])}), patch.object(api_stream3, "ollama_client", client), patch.object(api_stream3, "write_audit_log"), patch.object(api_stream3, "_record_xai_trace"):
+            request = ChatRequest(question=question)
+            classic = await api_stream3.chat_endpoint(request)
+            events = [json.loads(frame[6:]) async for frame in api_stream3.generate_stream(request)]
+        client.chat.assert_not_called()
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["type"], "final")
+        for result in (classic, events[-1]):
+            self.assertEqual(result["reponse"], api_stream3.REFUS_IDENTIFIANTS_MESSAGE)
+            self.assertEqual(result["sources"], [])
+            self.assertEqual(result["retrieval_graph"]["missing_identifiers"], ["tsortrow"])
+            self.assertEqual(result["retrieval_graph"]["candidates"], [])
+
     async def test_both_endpoints_expose_the_same_late_passage_sent_to_ollama(self):
         question = "Comment configurer tSortRow ?"
         text = "Autre texte. " * 310 + "tSortRow : description fictive."

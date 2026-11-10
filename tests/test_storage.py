@@ -50,6 +50,11 @@ class RetrievalGraphTests(unittest.TestCase):
             self.assertTrue(any("flowchart TD" in element.value for element in app.markdown))
             self.assertTrue(any("Passage 1" in element.value for element in app.text))
             self.assertTrue(any(element.value == "tSortRow\nPassage fictif" for element in app.text))
+            refused_graph = {**graph, "guardrail_allowed": False, "missing_identifiers": ["tsortrow"], "candidates": []}
+            app.session_state["messages"] = [{"role": "assistant", "content": "Réponse refusée", "retrieval_graph": refused_graph}]
+            app.run()
+            self.assertFalse(app.exception)
+            self.assertTrue(any("Identifiants absents du contexte : tsortrow" == element.value for element in app.text))
 
     def test_mermaid_does_not_interpret_document_or_question_as_diagram_code(self):
         graph = {

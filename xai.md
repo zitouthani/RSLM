@@ -21,6 +21,8 @@ La présence d’une source dans le contexte ne prouve pas que chaque affirmatio
 
 Les scripts d’évaluation peuvent vérifier des faits et des références attendus à l’aide de règles lexicales et d’annotations propres à un corpus. Ces contrôles aident à suivre les régressions, mais ne remplacent ni une vérification humaine ni une évaluation sémantique de l’étayage.
 
+Le contrôle de pertinence exige la présence dans le contexte des identifiants explicitement formulés en camelCase ou avec un tiret bas dans la question initiale. Il ne couvre pas tous les noms techniques et peut refuser un extrait qui emploie un alias. Inversement, la présence du nom ne garantit pas que l'extrait permette de répondre.
+
 ## Méthode de revue recommandée
 
 Pour évaluer la fidélité des citations sur un jeu de données autorisé :

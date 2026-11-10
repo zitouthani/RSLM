@@ -29,6 +29,12 @@ function createResponse(chunks, options = {}) {
 }
 
 describe("retrieval graph", () => {
+  it("explains when a technical identifier is missing", () => {
+    const graph = { question: "Comment configurer tSortRow ?", search_query: "configurer tSortRow", question_terms: ["configurer", "tsortrow"], shared_terms: ["configurer"], guardrail_allowed: false, best_vector_score: 0.8, minimum_vector_score: 0.5, missing_identifiers: ["tsortrow"], candidates: [] };
+    const html = renderToStaticMarkup(createElement(RetrievalGraph, { graph }));
+    expect(html).toContain("Identifiants absents du contexte");
+    expect(html).toContain("tsortrow");
+  });
   it("renders real ranks, selected passages and lexical checks", () => {
     const graph = {
       question: "Comment trier ?", search_query: "trier",

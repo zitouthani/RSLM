@@ -60,6 +60,7 @@ def build_retrieval_graph(trace: dict[str, Any]) -> dict[str, Any]:
         "search_query": trace.get("search_query"),
         "question_terms": guardrail.get("question_terms", []),
         "shared_terms": guardrail.get("shared_terms", []),
+        "missing_identifiers": guardrail.get("missing_identifiers", []),
         "guardrail_allowed": guardrail.get("allowed"),
         "best_vector_score": guardrail.get("best_vector_score"),
         "minimum_vector_score": guardrail.get("minimum_vector_score"),

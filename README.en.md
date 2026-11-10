@@ -235,6 +235,11 @@ Lexical coverage and citation-presence metrics are regression aids, not proof
 of truth or citation fidelity. See [xai.md](xai.md) for provenance and
 evaluation limitations.
 
+The relevance check also requires identifiers explicitly written in camelCase
+or with an underscore in the question to appear in the selected context. It
+may reject relevant passages that use an alias and does not recognize every
+technical name; a match does not prove that the passage answers the question.
+
 The retrieval graph shows permitted candidates, their ranking, and the
 passages prepared for the model. It describes the retrieval process, not a
 corpus knowledge graph. The displayed terms are used for the lexical guardrail;

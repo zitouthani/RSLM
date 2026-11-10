@@ -214,6 +214,12 @@ Les évaluations de recherche et de réponses attendent des jeux de données dan
 
 Les métriques de couverture lexicale et de présence des sources sont des aides à l’évaluation, pas des preuves automatiques de vérité ou de fidélité. Pour interpréter la provenance et les limites des traces, voir [xai.md](xai.md).
 
+Le contrôle de pertinence vérifie aussi la présence, dans le contexte retenu,
+des identifiants explicitement écrits en camelCase ou avec un tiret bas dans
+la question. Il peut refuser une réponse pertinente utilisant un alias, et ne
+reconnaît pas tous les noms techniques ; une correspondance ne garantit pas
+non plus que le passage réponde à la question.
+
 Le graphe de recherche montre les candidats autorisés, leur classement et les passages préparés pour le modèle. Il décrit le parcours de recherche, pas un graphe de connaissances du corpus. Les mots affichés concernent le contrôle lexical ; la recherche initiale est vectorielle. Les passages retenus commencent si nécessaire à un terme de la question et restent soumis aux limites de contexte ; les sources et le graphe affichent ce même texte. Les autres candidats restent des aperçus. Ces extraits documentaires sont stockés avec la conversation : dans le `localStorage` du navigateur et l'export JSON pour React, ou dans l'historique local des conversations pour Streamlit. Les détails des documents exclus ou d'une recherche refusée ne sont pas transmis dans le graphe. Les anciennes réponses ne sont pas modifiées.
 
 ## Matériel et performances
